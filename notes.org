@@ -407,6 +407,6 @@ Answers To "Check Your Understanding":
 - Q1. If we have Recipe and Ingredient resources and we want to nest ingredients under recipes in the json we're returning, in which file would we use the has_many macro? In which file would we use the belongs_to macro?
 - Answer: Well A.) You didn't specify at all the relationship present... so one can assume that a 'recipe' 'has_many' 'ingredients', and 'ingredients' 'belongs_to' 'recipe'
 - Q2. If we want to specify a custom serializer for the parent resource (Recipe), in which file would we do that? In which file would we specify a custom serializer for the child resource (Ingredient)?
-- Answer: You need to create a custom serializer in 'app/serializers'. Then, you have to refer to it in the controller file with the 'serializer: ' option. Also, you should modify the 'config/routes.rb' routes file accordingly as well.
+- Answer: You need to create a custom serializer in 'app/serializers'. Then, in the Serializer file for the model that relates to it, you need to utilize the 'serializer' option within it. Then, within the controller file for the model that relates to it, you can just render it as normal. Also, you should modify the 'config/routes.rb' routes file accordingly as well.
 - Q2. In which file do we use the include keyword to set up deep nesting?
 - Answer: You would add 'include:' to the 'render' portion of a given method within the related Controller file in the 'app/controllers' directory

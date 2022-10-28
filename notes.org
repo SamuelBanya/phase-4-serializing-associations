@@ -1,0 +1,412 @@
+* Notes
+<2022-10-27 Thu 18:54>: NOTE:
+- This lab annoyingly keeps referencing the 'AMS' acroynm without ever defining it, so here it is:
+- AMS: 'Active Model Serializers'
+- Related link:
+- https://github.com/rails-api/active_model_serializers
+
+The related relationships in this lab include the following:
+- Director -< Movies -< Reviews
+- Based on that above relationship, 'Movies' will be the 'join table' class in this scenario
+
+These are the changes that the instructors did 'behind the scenes' for the 'Director' class:
+- Removed director and female_director as attributes in our movie migration file; added a director_id attribute
+- Added a new migration for our director model with three attributes: name, birthplace and female_director
+- Added the belongs_to :director macro to the Movie model and the has_many :movies macro to the Director model
+- Added index and show routes for the Director model in config/routes.rb
+- Added a DirectorsController and created the index and show actions
+
+These are the changes that the instructors did 'behind the scenes' for the 'Review' class:
+- Added a new migration with four attributes: author, date, url, and movie_id
+- Added the has_many :reviews macro to the Movie model and the belongs_to :movie macro to the Review model
+- Added an index route for the Review model in config/routes.rb
+- Created a ReviewsController and added the index action
+
+I then did the following commands to set the lab up:
+#+begin_src bash
+bundle install
+rails db:migrate db:seed
+rails s
+#+end_src
+
+I then created the 'director' serializer with the following 'rails g serializer' command:
+#+begin_src bash
+samuelbanya@Samuels-MBP ~/hub/Development/code/phase-4/phase-4-serializing-associations $ rails g serializer director
+      create  app/serializers/director_serializer.rb
+#+end_src
+
+I then modified the contents of the 'app/serializers/director_serializer.rb' file with the following:
+#+begin_src ruby
+class DirectorSerializer < ActiveModel::Serializer
+  attributes :id, :name, :birthplace, :female_director
+end
+#+end_src
+
+I then visited the 'http://localhost:3000/directors' URL in browser, and received the following JSON response:
+#+begin_src json
+// 20221027190050
+// http://localhost:3000/directors
+
+[
+  {
+    "id": 1,
+    "name": "Steven Spielberg",
+    "birthplace": "Cincinnati, OH",
+    "female_director": false
+  },
+  {
+    "id": 2,
+    "name": "Julie Taymor",
+    "birthplace": "Newton, MA",
+    "female_director": true
+  },
+  {
+    "id": 3,
+    "name": "Mira Nair",
+    "birthplace": "Bhubaneshwar, Orissa, India",
+    "female_director": true
+  }
+]
+#+end_src
+
+I then revised the 'app/serializers/movie_serializer.rb' Serializer with the following contents to reflect the 'belongs_to' relationship of the 'Movie' model to the 'Director model:
+#+begin_src ruby
+class MovieSerializer < ActiveModel::Serializer
+  attributes :id, :title, :year, :length, :description, :poster_url, :category, :discount
+
+  belongs_to :director
+end
+#+end_src
+
+I then navigated to the 'localhost:3000/movies/1' URL and received the following JSON response:
+#+begin_src json
+// 20221027190409
+// http://localhost:3000/movies/1
+
+{
+  "id": 1,
+  "title": "The Color Purple",
+  "year": 1985,
+  "length": 154,
+  "description": "Whoopi Goldberg brings Alice Walker's Pulitzer Prize-winning feminist novel to life as Celie, a Southern woman who suffered abuse over decades. A project brought to a hesitant Steven Spielberg by producer Quincy Jones, the film marks Spielberg's first female lead.",
+  "poster_url": "https://pisces.bbystatic.com/image2/BestBuy_US/images/products/3071/3071213_so.jpg",
+  "category": "Drama",
+  "discount": false,
+  "director": {
+    "id": 1,
+    "name": "Steven Spielberg",
+    "birthplace": "Cincinnati, OH",
+    "female_director": false
+  }
+}
+#+end_src
+
+I then also included the inverse 'has_many' relationship within the 'Director' serializer file, 'app/serializers/director_serializer.rb', by including the following contents:
+#+begin_src ruby
+class DirectorSerializer < ActiveModel::Serializer
+  attributes :id, :name, :birthplace, :female_director
+
+  has_many :movies
+end
+#+end_src
+
+I then visited the 'http://localhost:3000/directors/1' URL in the Chrome browser, and received this more detailed JSON response as a result of my previous changes:
+#+begin_src json
+// 20221027190540
+// http://localhost:3000/directors/1
+
+{
+  "id": 1,
+  "name": "Steven Spielberg",
+  "birthplace": "Cincinnati, OH",
+  "female_director": false,
+  "movies": [
+    {
+      "id": 1,
+      "title": "The Color Purple",
+      "year": 1985,
+      "length": 154,
+      "description": "Whoopi Goldberg brings Alice Walker's Pulitzer Prize-winning feminist novel to life as Celie, a Southern woman who suffered abuse over decades. A project brought to a hesitant Steven Spielberg by producer Quincy Jones, the film marks Spielberg's first female lead.",
+      "poster_url": "https://pisces.bbystatic.com/image2/BestBuy_US/images/products/3071/3071213_so.jpg",
+      "category": "Drama",
+      "discount": false
+    }
+  ]
+}
+#+end_src
+
+I then created a more streamlined serializer called 'director_movie' with the following 'rails g serializer' command:
+#+begin_src bash
+samuelbanya@Samuels-MBP ~/hub/Development/code/phase-4/phase-4-serializing-associations $ rails g serializer director_movie
+      create  app/serializers/director_movie_serializer.rb
+#+end_src
+
+I then revised the contents of the 'app/serializers/director_movie_serializer.rb' Serializer file with the following contents:
+#+begin_src ruby
+class DirectorMovieSerializer < ActiveModel::Serializer
+  attributes :title, :year
+end
+#+end_src
+
+I then modified the contents of the 'app/serializers/director_serializer.rb' Director Serializer file to refer to the 'DirectorMovieSerializer' as well:
+#+begin_src ruby
+class DirectorSerializer < ActiveModel::Serializer
+  attributes :id, :name, :birthplace, :female_director
+
+  # NOTE: Commented out since the lab wants to use a modified 'director_movie' serializer instead:
+  # has_many :movies
+
+  # Using the 'director_movie' serializer:
+  has_many :movies, serializer: DirectorMovieSerializer
+end
+#+end_src
+
+I then refreshed the 'http://localhost:3000/directors' page and observed the following more condensed response:
+#+begin_src json
+// 20221027191148
+// http://localhost:3000/directors
+
+[
+  {
+    "id": 1,
+    "name": "Steven Spielberg",
+    "birthplace": "Cincinnati, OH",
+    "female_director": false,
+    "movies": [
+      {
+        "title": "The Color Purple",
+        "year": 1985
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "name": "Julie Taymor",
+    "birthplace": "Newton, MA",
+    "female_director": true,
+    "movies": [
+      {
+        "title": "Frida",
+        "year": 2002
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "name": "Mira Nair",
+    "birthplace": "Bhubaneshwar, Orissa, India",
+    "female_director": true,
+    "movies": [
+      {
+        "title": "Queen of Katwe",
+        "year": 2016
+      }
+    ]
+  }
+]
+#+end_src
+
+I then created the 'Review' serializer with the following 'rails g serializer' command:
+#+begin_src bash
+samuelbanya@Samuels-MBP ~/hub/Development/code/phase-4/phase-4-serializing-associations $ rails g serializer review
+      create  app/serializers/review_serializer.rb
+#+end_src
+
+I then modified the contents of the 'app/serializers/review_serializer.rb' file with the following:
+#+begin_src ruby
+class ReviewSerializer < ActiveModel::Serializer
+  attributes :id, :author, :date, :url
+end
+#+end_src
+
+I then visited the 'http://localhost:3000/reviews' URL in the Chrome browser and received the following JSON response:
+#+begin_src json
+// 20221027191507
+// http://localhost:3000/reviews
+
+[
+  {
+    "id": 1,
+    "author": "Roger Ebert",
+    "date": "December 20, 1985",
+    "url": "https://www.rogerebert.com/reviews/the-color-purple-1985"
+  },
+  {
+    "id": 2,
+    "author": "Variety Staff",
+    "date": "December 31, 1984",
+    "url": "https://variety.com/1984/film/reviews/the-color-purple-1200426436/"
+  },
+  {
+    "id": 3,
+    "author": "Janet Maslin",
+    "date": "December 18, 1985",
+    "url": "https://www.nytimes.com/1985/12/18/movies/moviesspecial/the-color-purple.html"
+  }
+]
+#+end_src
+
+I then revised the 'config/routes.rb' routes file with the following revision to comment out the 'reviews' based resource:
+#+begin_src ruby
+Rails.application.routes.draw do
+  resources :movies, only: [:index, :show]
+  get '/movies/:id/summary', to: 'movies#summary'
+  get '/movie_summaries', to: 'movies#summaries'
+  resources :directors, only: [:index, :show]
+  # NOTE: Commented out for 'best programming practices':
+  # resources :reviews, only: [:index]
+  # For details on the DSL available within this file, see https://guides.rubyonrails.org/routing.html
+end
+#+end_src
+
+I then commented out the 'index' method of the 'app/controllers/reviews_controllers.rb' ReviewsController controller file for 'best programming practices' as per the lab assignment:
+#+begin_src ruby
+class ReviewsController < ApplicationController
+  # NOTE: Commented out for 'best programming practices':
+  # def index
+  #   reviews = Review.all
+  #   render json: reviews
+  # end
+end
+#+end_src
+
+I then revised the 'app/serializers/movie_serializer.rb' serializer file with the following contents to include the 'belongs_to' relationship to the 'Reviews' model:
+#+begin_src ruby
+class MovieSerializer < ActiveModel::Serializer
+  attributes :id, :title, :year, :length, :description, :poster_url, :category, :discount
+
+  belongs_to :director
+  # NOTE: Added this to include the relationship to the 'reviews' model:
+  has_many :reviews
+end
+#+end_src
+
+I then visited the 'http://localhost:3000/movies/1' URL and observed the following JSON response:
+#+begin_src json
+// 20221027192002
+// http://localhost:3000/movies/1
+
+{
+  "id": 1,
+  "title": "The Color Purple",
+  "year": 1985,
+  "length": 154,
+  "description": "Whoopi Goldberg brings Alice Walker's Pulitzer Prize-winning feminist novel to life as Celie, a Southern woman who suffered abuse over decades. A project brought to a hesitant Steven Spielberg by producer Quincy Jones, the film marks Spielberg's first female lead.",
+  "poster_url": "https://pisces.bbystatic.com/image2/BestBuy_US/images/products/3071/3071213_so.jpg",
+  "category": "Drama",
+  "discount": false,
+  "director": {
+    "id": 1,
+    "name": "Steven Spielberg",
+    "birthplace": "Cincinnati, OH",
+    "female_director": false
+  },
+  "reviews": [
+    {
+      "id": 1,
+      "author": "Roger Ebert",
+      "date": "December 20, 1985",
+      "url": "https://www.rogerebert.com/reviews/the-color-purple-1985"
+    },
+    {
+      "id": 2,
+      "author": "Variety Staff",
+      "date": "December 31, 1984",
+      "url": "https://variety.com/1984/film/reviews/the-color-purple-1200426436/"
+    },
+    {
+      "id": 3,
+      "author": "Janet Maslin",
+      "date": "December 18, 1985",
+      "url": "https://www.nytimes.com/1985/12/18/movies/moviesspecial/the-color-purple.html"
+    }
+  ]
+}
+#+end_src
+
+I then overrided the default protections against nested options by using the 'include:' option in the 'app/controllers/directors_controller.rb' DirectorsController file:
+#+begin_src ruby
+class DirectorsController < ApplicationController
+  rescue_from ActiveRecord::RecordNotFound, with: :render_not_found_response
+
+  def index
+    directors = Director.all
+    # NOTE: Adding 'include:' symbol option to include nested data:
+    render json: directors, include: ["movies", "movies.reviews"]
+  end
+
+  def show
+    director = Director.find(params[:id])
+    render json: director, include: ["movies", "movies.reviews"]
+  end
+
+  private
+
+  def render_not_found_response
+    render json: { error: "Director not found" }, status: :not_found
+  end
+
+end
+#+end_src
+
+I then revised the 'app/serializers/director_movie_serializer.rb' Serializer file to include the 'has_many' association method so that it includes its relationship to the 'Reviews' model:
+#+begin_src ruby
+class DirectorMovieSerializer < ActiveModel::Serializer
+  attributes :title, :year
+
+  # NOTE: Adding 'has_many' association method to include relationship
+  # to 'Reviews' model:
+  has_many :reviews
+end
+
+#+end_src
+
+I then visited the 'http://localhost:3000/movies/1' page again, and received the following revised JSON response:
+#+begin_src json
+// http://localhost:3000/movies/1
+
+{
+  "id": 1,
+  "title": "The Color Purple",
+  "year": 1985,
+  "length": 154,
+  "description": "Whoopi Goldberg brings Alice Walker's Pulitzer Prize-winning feminist novel to life as Celie, a Southern woman who suffered abuse over decades. A project brought to a hesitant Steven Spielberg by producer Quincy Jones, the film marks Spielberg's first female lead.",
+  "poster_url": "https://pisces.bbystatic.com/image2/BestBuy_US/images/products/3071/3071213_so.jpg",
+  "category": "Drama",
+  "discount": false,
+  "director": {
+    "id": 1,
+    "name": "Steven Spielberg",
+    "birthplace": "Cincinnati, OH",
+    "female_director": false
+  },
+  "reviews": [
+    {
+      "id": 1,
+      "author": "Roger Ebert",
+      "date": "December 20, 1985",
+      "url": "https://www.rogerebert.com/reviews/the-color-purple-1985"
+    },
+    {
+      "id": 2,
+      "author": "Variety Staff",
+      "date": "December 31, 1984",
+      "url": "https://variety.com/1984/film/reviews/the-color-purple-1200426436/"
+    },
+    {
+      "id": 3,
+      "author": "Janet Maslin",
+      "date": "December 18, 1985",
+      "url": "https://www.nytimes.com/1985/12/18/movies/moviesspecial/the-color-purple.html"
+    }
+  ]
+}
+#+end_src
+
+Answers To "Check Your Understanding":
+- Q1. If we have Recipe and Ingredient resources and we want to nest ingredients under recipes in the json we're returning, in which file would we use the has_many macro? In which file would we use the belongs_to macro?
+- Answer: Well A.) You didn't specify at all the relationship present... so one can assume that a 'recipe' 'has_many' 'ingredients', and 'ingredients' 'belongs_to' 'recipe'
+- Q2. If we want to specify a custom serializer for the parent resource (Recipe), in which file would we do that? In which file would we specify a custom serializer for the child resource (Ingredient)?
+- Answer: You need to create a custom serializer in 'app/serializers'. Then, you have to refer to it in the controller file with the 'serializer: ' option. Also, you should modify the 'config/routes.rb' routes file accordingly as well.
+- Q2. In which file do we use the include keyword to set up deep nesting?
+- Answer: You would add 'include:' to the 'render' portion of a given method within the related Controller file in the 'app/controllers' directory
